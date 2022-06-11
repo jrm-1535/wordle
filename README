@@ -1,0 +1,10 @@
+A tiny wordle player and solver written in C.
+
+Two executables are available: wordle, a standalone, terminal (non-graphical) 
+player, solver and stats generator for 5 letters words, and server, an http 
+server for an html wordle solver suitable for desktop (tested on linux), tablet 
+(tested on iPad) and phone (tested on iPhone).
+
+Those executables depend only on standard C libraries, posix librarues and for 
+server on microhttpd, which should guarantee portability on a large number of 
+systems.
