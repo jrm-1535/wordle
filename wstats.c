@@ -24,7 +24,7 @@ static void init_word_stats( word_stats *ws )
     memset( ws->n_letter_pos, 0, sizeof(int) * ALPHABET_SIZE * WORD_SIZE );
 }
 
-static void analyze_word( void *ctxt, char *word )
+static void analyze_word( void *ctxt, const char *word )
 {
     word_stats *ws = ctxt;
     for ( int k = 0; k < WORD_SIZE; ++k ) {
@@ -72,7 +72,7 @@ typedef struct _starting_word {
                             *prev,      // circular backward chain
                             *follow;    // subsequent words
     int                     weight;
-    char                    *word;
+    const char              *word;
 } starting_word;
 
 static void free_starting_words( starting_word *root )
@@ -213,7 +213,7 @@ static starting_word *get_best_starting_words( starting_context *sc, word_stats 
     return root;
 }
 
-extern char *select_most_likely_word( word_node *list )
+extern const char *select_most_likely_word( word_node *list )
 {
     word_stats ws;
     init_word_stats( &ws );
@@ -222,7 +222,7 @@ extern char *select_most_likely_word( word_node *list )
         analyze_word( &ws, wn->word );
         ++n;
     }
-    char *best = NULL;
+    const char *best = NULL;
     if ( n > 2 ) {  // otherwise no choice or equal probability
         // for each word compute letter at position count
         int max_weight = 0;
@@ -291,7 +291,7 @@ static void sort_letter_pos( word_stats *wsp, letter_rank *lr )
 }
 
 typedef struct  {
-    char *word;
+    const char *word;
     int  n_letters;
     int  count;
 } repeat;
@@ -301,7 +301,7 @@ typedef struct {
     int    index;
 } repeat_stats;
 
-static void update_repeat( void *ctxt, char *word )
+static void update_repeat( void *ctxt, const char *word )
 {
     repeat_stats *rs = ctxt;
 

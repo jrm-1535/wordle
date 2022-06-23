@@ -10,19 +10,20 @@
 
 #include "wdict.h"
 #include "wstats.h"
+#include "wpos.h"
 #include "wsolve.h"
 
-#define NOT_IN     0
-#define IN_WRONG   1
-#define CORRECT    2
-#define UNKNOWN    3
+#define NOT_IN     '-'
+#define IN_WRONG   'w'
+#define CORRECT    'r'
+#define UNKNOWN    ' '
 
 typedef struct {
   char  attr, letter;
 } chattr;
 
 chattr all[ ALPHABET_SIZE ];
-void init_all( void )
+static void init_all( void )
 {
     for ( int i = 0; i < ALPHABET_SIZE; ++i ) {
         all[i].attr = UNKNOWN;
@@ -30,35 +31,36 @@ void init_all( void )
     }
 }
 
-bool check_match( char *ref, char *try )
+static bool check_match( const char *ref, char *try )
 {
-    if ( ! is_word_in_dictionary( try ) ) {
+    char position[WORD_SIZE+1];
+    if ( -1 == get_position_from_words( ref, try, position ) ) {
         printf( "%c%c%c%c%c is not in dictionary, try again\n",
                 try[0], try[1], try[2], try[3], try[4] );
         return false;
     }
-    chattr current[ WORD_SIZE ];
 
-    for ( int i = 0; i < WORD_SIZE; ++i ) {
-        if ( ref[i] == try[i] ) {
-            current[i].attr = CORRECT; 
-        } else if ( NULL != strchr( ref, try[i] ) ) {
-            current[i].attr = IN_WRONG; 
-        } else {
-            current[i].attr = NOT_IN; 
-        }
-        current[i].letter = try[i];
-
-        all[try[i]-'a'].letter = try[i];
-        all[try[i]-'a'].attr = current[i].attr;
-    }
     for ( int i = 0; i < WORD_SIZE; ++ i ) {
-        switch( current[i].attr ) {
-        case NOT_IN: fputs( RED_BG, stdout ); break;
-        case IN_WRONG: fputs( YELLOW_BG, stdout ); break;
-        case CORRECT: fputs( GREEN_BG, stdout ); break;
+        char key_attr = all[ try[i]-'a' ].attr;
+        switch( position[i] ) {
+        case NOT_IN:
+            if ( key_attr != CORRECT &&  key_attr != IN_WRONG ) {
+                all[ try[i]-'a' ].attr = NOT_IN;
+            }
+            fputs( RED_BG, stdout );
+            break;
+        case IN_WRONG:
+            if ( key_attr != CORRECT ) {
+                all[ try[i]-'a' ].attr = IN_WRONG;
+            }
+            fputs( YELLOW_BG, stdout );
+            break;
+        case CORRECT:
+            all[ try[i]-'a' ].attr = CORRECT;
+            fputs( GREEN_BG, stdout );
+            break;
         }
-        putchar( current[i].letter );
+        putchar( try[i] );
     }
     fputs( DEFAULT, stdout );
 
@@ -79,18 +81,18 @@ bool check_match( char *ref, char *try )
     }
 }
 
-void play( void )
+static void play( void )
 {
 #if 1
     unsigned int seed = time( NULL );
     int n_words = get_dictionary_size();
     srand( seed );
     int word_number = rand() % n_words;
-    char *word = get_nth_word_in_dictionary( word_number );
+    const char *word = get_nth_word_in_dictionary( word_number );
     printf( "Playing wordle - number %d:\n", word_number );
 #else
     printf( "Playing wordle:\n" );
-    char *word = "patsy";
+    const char *word = "patsy";
     if ( ! is_word_in_dictionary( word ) ) {
         printf("Word %s is not in dictionary\n", word );
         exit(0);
@@ -101,6 +103,7 @@ void play( void )
     char buffer[WORD_SIZE+1];
     do {
         read( stdin_fd, (void *)buffer, WORD_SIZE+1 );
+        buffer[ WORD_SIZE ] = 0;
         fputs( UP, stdout );
     } while ( ! check_match( word, buffer ) );
 }
@@ -336,14 +339,11 @@ void set_solver_data_from_args( solver_data *given, args_t *args )
                 }
                 for ( int i = 0; i < WORD_SIZE; ++i ) {
                     if ( '-' != *p ) {
-//        printf("pos %d, index @ pos %d, char %c\n", i, index_at_pos[i], c );
                         given->wrong[i][index_at_pos[i]] = c;
                         ++index_at_pos[i];
                     }
                     ++p;
                 }
-//            } else {
-//                printf( "wordle: skipping empty set for -o (%s)\n", set );
             }
             set = p;
         }
@@ -372,21 +372,6 @@ enum operations process_args( args_t *args, solver_data *given )
     return SOLVE;
 }
 
-void print_given( solver_data *given )
-{
-    printf( "required = %s, out = %s, known = %s\n",
-            given->required, given->out, given->known );
-    for ( int i = 0; i < WORD_SIZE; ++i ) {
-        printf( "position %d:", i );
-        for ( int j = 0; j < WORD_SIZE; ++j ) {
-            if ( 0 == given->wrong[i][j] )
-                break;
-            printf( " %c", given->wrong[i][j] );
-        }
-        printf( "\n" );
-    }
-}
-
 int main ( int argc, char **argv )
 {
     args_t args;
@@ -403,12 +388,12 @@ int main ( int argc, char **argv )
         print_letter_stats( );
         break;
     case SOLVE:
-        print_given( &given );
+        print_solver_data( &given );
         result = get_solutions( &given );
         if ( NULL == result ) {
             printf( "No solution\n" );
         } else {
-            char *best = select_most_likely_word( result );
+            const char *best = select_most_likely_word( result );
             printf("Possiblities:\n");
             for ( word_node *wn = result ; wn; wn = wn->next ) {
                 printf(" %s\n", wn->word );

@@ -5,6 +5,7 @@
 #include <assert.h>
 
 #include "wdict.h"
+#include "wpos.h"
 #include "wsolve.h"
 
 typedef struct {
@@ -13,27 +14,50 @@ typedef struct {
     char            *known;             // must be @ position
     char            *required;          // required but
     char            *wrong[WORD_SIZE];  // must not be @ position
+    int             *required_count;    // required letter counts
     int             n_required;
-} subset_constraints_alt;
+} subset_constraints;
 
-void match( void *ctxt, char *word )
+static void match( void *ctxt, const char *word )
 {
-    subset_constraints_alt *sc = ctxt;
-    for ( int i = 0; i < sc->n_required; ++i ) {
-        if ( NULL == strchr( word, sc->required[i] ) ) {
-            return;
+    subset_constraints *sc = ctxt;
+
+//    printf( "word: %s required: %s known: %s out: %s\n",
+//            word, sc->required, sc->known, sc->out );
+    int required_count[WORD_SIZE]; // local copy (modifed inside function)
+    memcpy( required_count, sc->required_count, sizeof( int ) * WORD_SIZE );
+
+    // for each position in word
+    for ( int i = 0; i < WORD_SIZE; ++i ) {
+        // first check if required letter at that position
+        if ( sc->known[i] != '-' ) {
+            // if not the same as candidate letter at that position
+            if ( sc->known[i] != word[i] ) {
+                return;     // reject candidate
+            }   // otherwise match, move to next letter
+        } else {    // no required letter at that position
+                        // check if required at some other position
+            char *rlp = strchr( sc->required, word[i] );
+            if ( rlp ) {    // letter is potentially required
+                if ( sc->wrong[i] && strchr( sc->wrong[i], word[i] ) ) {
+                    return; // letter at wrong position: reject candidate
+                }
+                int rli = rlp-sc->required;
+                if ( required_count[rli] > 0 ) { // instance still possible
+                    -- required_count[rli];
+                    continue;       // accept instance and move to next letter
+                }
+            }
+            // candidate letter is not (or no longer) required
+            if ( NULL != strchr( sc->out, word[i] ) ) { // and is no more in
+                return;         // reject, letter can no longer be in word
+            }   // else accept candidate and move on to next letter
         }
     }
-    for ( int i = 0; i < WORD_SIZE; ++i ) {
-        if ( NULL != strchr( sc->out, word[i] ) ) {
+    // reject if all required have not been exhausted
+    for ( int i = 0; i < sc->n_required ; i++ ) {
+        if ( required_count[i] != 0 )
             return;
-        }
-        if ( sc->known[i] != '-' && sc->known[i] != word[i] ) {
-            return;
-        }
-        if ( sc->wrong[i] && strchr( sc->wrong[i], word[i] ) ) {
-            return;
-        }
     }
     word_node *wn = malloc( sizeof(word_node) );
     assert( wn );
@@ -44,24 +68,44 @@ void match( void *ctxt, char *word )
 
 extern word_node *get_solutions( solver_data *given )
 {
-    subset_constraints_alt constraints;
+    //print_solver_data( given );
+    subset_constraints constraints;
     constraints.subset = NULL;
     constraints.out = given->out;
     constraints.known = given->known;
     constraints.required = given->required;
+    constraints.required_count = given->required_count;
     constraints.n_required = strlen( constraints.required );
     memcpy( constraints.wrong, given->wrong, sizeof(char *) * WORD_SIZE );
-
     for_each_word_in_dictionary( match, &constraints );
     return constraints.subset;
 }
 
+extern void print_solver_data( solver_data *given )
+{
+    printf( "solver data: required = %s, out = %s, known = %s\n",
+            given->required, given->out, given->known );
+    printf( "required number: %d, %d, %d, %d, %d\n",
+            given->required_count[0], given->required_count[1],
+            given->required_count[2], given->required_count[3],
+            given->required_count[4] );
+    for ( int i = 0; i < WORD_SIZE; ++i ) {
+        printf( "position %d:", i );
+        for ( int j = 0; j < WORD_SIZE; ++j ) {
+            if ( 0 == given->wrong[i][j] )
+                break;
+            printf( " %c", given->wrong[i][j] );
+        }
+        printf( "\n" );
+    }
+}
 
 extern void init_solver_data( solver_data *data )
 {
     strcpy( data->known, "-----" );
     data->out = NULL;
     memset( data->required, 0, WORD_SIZE+1 );
+    memset( data->required_count, 0, sizeof(int) *(WORD_SIZE+1) );
     // up to WORD_SIZE wrong characters at up to WORD_SIZE positions
     char *buffer = malloc( WORD_SIZE * WORD_SIZE );
     memset( buffer, 0, WORD_SIZE * WORD_SIZE );
@@ -78,6 +122,7 @@ extern void reset_solver_data( solver_data *data )
         data->out = NULL;
     }
     memset( data->required, 0, WORD_SIZE+1 );
+    memset( data->required_count, 0, sizeof(int) *(WORD_SIZE+1) );
     memset( data->wrong[0], 0, WORD_SIZE * WORD_SIZE );
 }
 
@@ -101,117 +146,24 @@ extern void discard_solver_data( solver_data *data )
 extern solver_data_status set_solver_data( solver_data *given, char *data )
 {
     int n = strlen(data);
-    if ( n % 10 != 0 ) {
-        printf("wordle: data string must have a number of letters multiple of 10 (%d)\n", n );
-        return NON_MODULO_10_DATA_STRING_LENGTH;
-    }
     int n_letters = n >> 1;
     if ( n_letters >= MAX_LETTER_COUNT ) {
         printf("wordle: too many attempts (%d)\n", n_letters / 5 );
         return DATA_STRING_LENGTH_TOO_LARGE;
     }
 
-    // first pass find the number of required, known and not in word letters
-    char req_t[ MAX_LETTER_COUNT ] = { 0 }; // temp storage for required
-    char knw_t[ MAX_LETTER_COUNT ] = { 0 }; // temp storage for known
-    int n_required = 0, n_out = 0, n_known = 0 ;
-    for ( int i = 0; i < n; i += 2 ) {
-        switch ( data[i] ) {
-        case 'w' :
-            if ( NULL == strchr( req_t, data[i+1] ) ) {
-                req_t[n_required] = data[i+1];
-                ++n_required;
-            }
-            break;
-        case 'n' :
-            ++n_out;
-            break;
-        case 'k' :
-            if ( NULL == strchr( knw_t, data[i+1] ) ) {
-                knw_t[n_known] = data[i+1];
-                ++n_known;
-            }
-            break;
-        default:
-            printf( "wordle: invalid code (%c) in data\n", data[i] );
-            return INVALID_CODE_IN_DATA;
-        }
-        if ( data[i+1] < 'a' || data[i+1] > 'z' ) {
-            printf( "wordle: invalid letter (%c) in data\n", data[i+1] );
-            return INVALID_LETTER_IN_DATA;
-        }
-    }
-    if ( n_known > WORD_SIZE ) {
-        printf( "wordle: too many known letters (%d)\n", n_known );
-        return TOO_MANY_EXACT_POSITION_LETTERS;
-    }
-    if ( n_out > MAX_TRIES * WORD_SIZE ) {
-        printf("wordle: too many letters known to be out (%d)\n", n );
-        return TOO_MANY_NOT_IN_LETTERS;
-    }
-    if ( n_required >= WORD_SIZE ) {
-        printf( "wordle: too many wrong letters (%d)\n", n_required );
-        return TOO_MANY_WRONG_POSITION_LETTERs;
-    }
-
-    printf( "n_required = %d, n_out = %d, n_known = %d\n",
-            n_required, n_out, n_known );
-
-    // malloc room for out
-    given->out = malloc( n_out + 1 );
-    assert( given->out );
-    memset( given->out, 0, n_out + 1 );
-
-    // second pass, store out and known data
-    int i_out = 0;
-    for ( int i = 0; i < n; i += 2 ) {
-        switch ( data[i] ) {
-        case 'n' :
-            if ( NULL != strchr( knw_t, data[i+1] ) ) {
-                printf( "wordle: known letter (%c) is given as not in\n",
-                        data[i+1] );
-                free( given->out );
-                return EXACT_POSITION_NOT_IN_LETTERS;
-            }
-            if ( NULL != strchr( req_t, data[i+1] ) ) {
-                printf( "wordle: letter at wrong position (%c) is given as not in\n",
-                        data[i+1] );
-                free( given->out );
-                return WRONG_POSITION_NOT_IN_LETTERS;
-            }
-            if ( NULL == strchr( given->out, data[i+1] ) ) {
-                given->out[i_out] = data[i+1];
-                ++ i_out;
-            }   // ignore repeats
-            break;
-        case 'k' :
-            if ( given->known[ (i % 10) / 2 ] != '-' &&
-                 given->known[ (i % 10) / 2 ] != data[i+1] ) {
-                printf( "wordle: different known letters (%c) at same position\n",
-                        data[i+1] );
-                free( given->out );
-                given->out = NULL;
-                return CONFLICTING_EXACT_POSITION_LETTERS;
-            }
-            given->known[ (i % 10) / 2 ] = data[i+1];
-            break;
-        }
-    }
-    given->out[i_out] = 0;
-
-    // last pass, process wrong positions (needs known created in 2nd pass)
     int index_at_pos[WORD_SIZE] = { 0 };
-    int i_required = 0;
-    for ( int i = 0; i < n; i += 2 ) {
-        if ( 'w' == data[i] ) {
-            if ( NULL == strchr( given->required, data[i+1] ) ) {
-                if ( NULL == strchr( given->known, data[i+1] ) ) {
-                    // required only if not already known
-                    given->required[i_required++] = data[i+1];
-                }   // but still impossible at that location
-                given->wrong[(i % 10) / 2][index_at_pos[(i % 10) / 2]] = data[i+1] ;
-                ++index_at_pos[(i % 10) / 2];
-            }
+    given->out = malloc( n_letters + 1 );
+    memset( given->out, 0, n_letters + 1 );
+
+    //if ( 0 == strcmp( data, "nsnlnantwenfnenvkewr" ) ) {
+    //    printf( "Processing data: nsnlnantwenfnenvkewr\n" );
+    //}
+    for ( int i = 0; i < n; i += (2 * WORD_SIZE) ) {
+        solver_data_status status = update_solver_data( given, &data[i], index_at_pos );
+        if ( SOLVER_DATA_SET != status ) {
+            reset_solver_data( given );
+            return status;
         }
     }
     return SOLVER_DATA_SET;

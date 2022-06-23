@@ -24,7 +24,7 @@ static dict_node *dict_table[MAX_WORD_HASH_ENTRIES];
 static char *word_table[MAX_WORD_NUMBER];
 static int  n_dict_words;
 
-static uint32_t get_hash( char *word )
+static uint32_t get_hash( const char *word )
 {
     uint32_t hash = 0;
     for ( int i = 0; i < WORD_SIZE; ++i ) {
@@ -50,7 +50,10 @@ static void insert_word( char *word )
     }
     dict_table[index] = dn;
     word_table[n_dict_words] = word;
-    ++n_dict_words;
+    if ( ++n_dict_words >= MAX_WORD_NUMBER ) {
+        printf("Dictionary too large to fit in memory\n");
+        exit(1);
+    }
 }
 
 extern int  get_dictionary_size( void )
@@ -58,7 +61,7 @@ extern int  get_dictionary_size( void )
     return n_dict_words;
 }
 
-extern char *get_word_in_dictionary( char *word )
+extern const char *get_word_in_dictionary( const char *word )
 {
     uint32_t hash = get_hash( word );
     uint32_t index = hash % (uint32_t)MAX_WORD_HASH_ENTRIES;
@@ -69,7 +72,7 @@ extern char *get_word_in_dictionary( char *word )
     return NULL;
 }
 
-extern bool is_word_in_dictionary( char *word )
+extern bool is_word_in_dictionary( const char *word )
 {
     uint32_t hash = get_hash( word );
     uint32_t index = hash % (uint32_t)MAX_WORD_HASH_ENTRIES;
@@ -111,7 +114,7 @@ extern void for_each_word_in_dictionary( do_fct f, void *c )
     }
 }
 
-extern char *get_nth_word_in_dictionary( int index )
+extern const char *get_nth_word_in_dictionary( int index )
 {
     if ( index >= 0 && index < n_dict_words ) {
         return word_table[index];
@@ -120,7 +123,7 @@ extern char *get_nth_word_in_dictionary( int index )
 }
 
 // note that one can have any length, but two must be exactly WORD_SIZE
-static bool do_words_share_letters( char *one, char *two )
+static bool do_words_share_letters( const char *one, const char *two )
 {
     for ( int i = 0; i < WORD_SIZE; ++i ) {
         if ( NULL != strchr( one, two[i] ) ) {
@@ -130,7 +133,7 @@ static bool do_words_share_letters( char *one, char *two )
     return false;
 }
 
-extern word_node *get_all_words_in_dict_not_sharing_letters( char *letters )
+extern word_node *get_all_words_in_dict_not_sharing_letters( const char *letters )
 {
     word_node *root = NULL;
 
@@ -150,6 +153,13 @@ extern word_node *get_all_words_in_dict_not_sharing_letters( char *letters )
         root = wn;
     }
     return root;
+}
+
+extern size_t get_word_count( word_node *words )
+{
+    size_t count = 0;
+    for ( word_node *wn = words; wn; wn = wn->next ) ++count;
+    return count;
 }
 
 extern void free_word_list( word_node *words )
@@ -211,7 +221,7 @@ extern void print_collisions( void )
             col_stats.n_collisions, col_stats.max_collision_chain );
 }
 #endif
-extern void load_dictionary( char *path )
+extern void load_dictionary( const char *path )
 {
     FILE *f = fopen( path, "rb" );
     if ( NULL == f ) {

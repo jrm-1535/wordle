@@ -3,10 +3,12 @@
 #define __WSOLVE_H__
 
 typedef struct {
-    char known[WORD_SIZE+1];
     char *out;
-    char required[WORD_SIZE+1];
     char *wrong[WORD_SIZE];
+    int  required_count[WORD_SIZE+1];   // must have same size as required
+    char required[WORD_SIZE+1];
+    char known[WORD_SIZE+1];
+
 } solver_data;
 
 // data is given as an array of sets, each of 5 couples { code, letter }
@@ -29,19 +31,22 @@ extern void init_solver_data( solver_data *data );
 
 typedef enum {
     SOLVER_DATA_SET,
+
     NON_MODULO_10_DATA_STRING_LENGTH, 
     DATA_STRING_LENGTH_TOO_LARGE,
     INVALID_CODE_IN_DATA,
     INVALID_LETTER_IN_DATA,
-    TOO_MANY_NOT_IN_LETTERS,
-    TOO_MANY_EXACT_POSITION_LETTERS,
-    TOO_MANY_WRONG_POSITION_LETTERs,
+
     CONFLICTING_EXACT_POSITION_LETTERS,
-    EXACT_POSITION_NOT_IN_LETTERS,
-    WRONG_POSITION_NOT_IN_LETTERS
+    EXACT_POSITION_LETTER_NOT_IN_WORD,
+    WRONG_POSITION_LETTER_IN_EXACT_POSITION,
+    WRONG_POSITION_LETTER_NOT_IN_WORD,
+    TOO_MANY_WRONG_POSITION_LETTERS
+
 } solver_data_status;
 
 extern solver_data_status set_solver_data( solver_data *given, char *data );
+extern void print_solver_data( solver_data *given );
 
 extern void reset_solver_data( solver_data *data );
 extern void discard_solver_data( solver_data *data );

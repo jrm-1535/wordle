@@ -4,7 +4,7 @@
 
 typedef struct _word_node {
     struct _word_node *next;
-    char              *word;
+    const char        *word;
 } word_node;
 
 // global definitions

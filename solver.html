@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<html>
+<title>Wordle Solver</title>
+<meta name="viewport" content="width=device-width, initial-scale=1 user-scalable=no">
+<style>
+body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+/*    overflow-y: hidden; */
+}
+
+.horizontal-center-work-area
+{
+    height: auto;
+/*    width: 96vw; */
+    margin: auto;
+    width: 98%;
+    max-width: 400px;
+}
+
+.input-area
+{
+    display: grid;
+    grid-template-columns: 20% 20% 20% 20% 20%;
+/*    column-gap: 2vw; */
+    background-color: lightgrey;
+/*    overflow-x: hidden;*/
+    height: auto;
+/*    min-height: 200px; */
+    width: auto;
+}
+.tool-area
+{
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    height: auto;
+    width: auto;
+    font-size: 1rem;
+    font-weight: bold;
+    color: black;
+}
+.keyboard-area
+{
+    display: grid;
+    grid-template-columns: repeat(20, 1fr);
+    height: 7em;
+    width: 100%;
+    background-color: lightgrey;
+    color: black;
+    text-align: center;
+    font-size: 1.5rem;
+}
+.hidden-area
+{
+    display: none;
+}
+
+.response
+{
+    margin-left: 1px;
+    text-align: left;
+    font-size: 1.5em;
+    height: auto;
+    width: 73%;
+    max-width: 375px;
+}
+
+.letter
+{
+    margin-left: 5%;
+    border: 1px solid black;
+    border-radius: 5px;
+    height: 4.0rem;
+/*    width: 10vw; */
+    width: 90%;
+    text-align: center;
+    font-size: 3rem;
+}
+
+.exact-button
+{
+    background-color: silver;
+    border: 2px solid green;
+    border-radius: 5px;
+    height: 50px;
+    width: auto;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+}
+
+.exact
+{
+    background-color: green;
+}
+
+.wrong-button
+{
+    background-color: silver;
+    border: 2px solid yellow;
+    border-radius: 5px;
+    height: 50px;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+}
+.wrong
+{
+    background-color: yellow;
+}
+
+.not-in-button
+{
+    background-color: silver;
+    border: 2px solid gray;
+    border-radius: 5px;
+    height: 50px;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+}
+.not-in
+{
+    background-color: gray;
+}
+
+.submit
+{
+    border-radius: 5px;
+    height: 50px;
+    font-size: inherit;
+    font-weight: inherit;
+    color: inherit;
+}
+.active
+{
+    border: 2px solid red;
+}
+
+.q
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 1 / 3;
+    grid-row: 1;
+    color: inherit;
+}
+.w
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 3 / 5;
+    grid-row: 1;
+    color: inherit;
+}
+.e
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 5 / 7;
+    grid-row: 1;
+    color: inherit;
+}
+.r
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 7 / 9;
+    grid-row: 1;
+    color: inherit;
+}
+.t
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 9 / 11;
+    grid-row: 1;
+    color: inherit;
+}
+.y
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 9 / 11;
+    grid-row: 1;
+    color: inherit;
+}
+
+.y
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 11 / 13;
+    grid-row: 1;
+    color: inherit;
+}
+.u
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 13 / 15;
+    grid-row: 1;
+    color: inherit;
+}
+.i
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 15 / 17;
+    grid-row: 1;
+    color: inherit;
+}
+.o
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 17 / 19;
+    grid-row: 1;
+    color: inherit;
+}
+.p
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 19 / 21;
+    grid-row: 1;
+    color: inherit;
+}
+
+.a
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 2 / 4;
+    grid-row: 2;
+    color: inherit;
+}
+.s
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 4 / 6;
+    grid-row: 2;
+    color: inherit;
+}
+.d
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 6 / 8;
+    grid-row: 2;
+    color: inherit;
+}
+.f
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 8 / 10;
+    grid-row: 2;
+    color: inherit;
+}
+.g
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 10 / 12;
+    grid-row: 2;
+    color: inherit;
+}
+.h
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 12 / 14;
+    grid-row: 2;
+}
+.j
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 14 / 16;
+    grid-row: 2;
+    color: inherit;
+}
+.k
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 16 / 18;
+    grid-row: 2;
+    color: inherit;
+}
+.l
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 18 / 20;
+    grid-row: 2;
+    color: inherit;
+}
+.enter
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 1 / 4;
+    grid-row: 3;
+    color: inherit;
+    font-weight: bold;
+}
+.z
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 4 / 6;
+    grid-row: 3;
+    color: inherit;
+}
+.x
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 6 / 8;
+    grid-row: 3;
+    color: inherit;
+}
+.c
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 8 / 10;
+    grid-row: 3;
+    color: inherit;
+}
+.v
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 10 / 12;
+    grid-row: 3;
+    color: inherit;
+}
+.b
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 12 / 14;
+    grid-row: 3;
+    color: inherit;
+}
+.n
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 14 / 16;
+    grid-row: 3;
+    color: inherit;
+}
+.m
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 16 / 18;
+    grid-row: 3;
+    color: inherit;
+}
+.back
+{
+    border: 1px solid black;
+    border-radius: 5px;
+    grid-column: 18 / 21;
+    grid-row: 3;
+    color: inherit;
+    font-weight: bold;
+}
+.selected
+{
+    border: 2px solid orange;
+}
+.unselected
+{
+    border: 2px solid black;
+}
+</style>
+<body onload="setFirstFocus()">
+
+<div class="horizontal-center-work-area">
+    <div class="input-area" id="input-area">
+        <div id="0" class="letter not-in" onclick='setLetterStatus(0)'></div>
+        <div id="1" class="letter not-in" onclick='setLetterStatus(1)'></div>
+        <div id="2" class="letter not-in" onclick='setLetterStatus(2)'></div>
+        <div id="3" class="letter not-in" onclick='setLetterStatus(3)'></div>
+        <div id="4" class="letter not-in" onclick='setLetterStatus(4)'></div>
+    </div>
+
+    <div class="tool-area">
+        <button type="button" id="exact" class="exact-button" onclick="setStatus(2)">exact position</button>
+        <button type="button" id="wrong" class="wrong-button" onclick="setStatus(1)">wrong position</button>
+        <button type="button" id="not-in" class="not-in-button" onclick="setStatus(0)">not in word</button>
+    </div>
+<!--
+-->
+    <div class="keyboard-area" id="keyboard">
+        <button type="button" id="q" class="q" onclick="key('q')">Q</button>
+        <button type="button" id="w" class="w" onclick="key('w')">W</button>
+        <button type="button" id="e" class="e" onclick="key('e')">E</button>
+        <button type="button" id="r" class="r" onclick="key('r')">R</button>
+        <button type="button" id="t" class="t" onclick="key('t')">T</button>
+        <button type="button" id="y" class="y" onclick="key('y')">Y</button>
+        <button type="button" id="u" class="u" onclick="key('u')">U</button>
+        <button type="button" id="i" class="i" onclick="key('i')">I</button>
+        <button type="button" id="o" class="o" onclick="key('o')">O</button>
+        <button type="button" id="p" class="p" onclick="key('p')">P</button>
+
+        <button type="button" id="a" class="a" onclick="key('a')">A</button>
+        <button type="button" id="s" class="s" onclick="key('s')">S</button>
+        <button type="button" id="d" class="d" onclick="key('d')">D</button>
+        <button type="button" id="f" class="f" onclick="key('f')">F</button>
+        <button type="button" id="g" class="g" onclick="key('g')">G</button>
+        <button type="button" id="h" class="h" onclick="key('h')">H</button>
+        <button type="button" id="j" class="j" onclick="key('j')">J</button>
+        <button type="button" id="k" class="k" onclick="key('k')">K</button>
+        <button type="button" id="l" class="l" onclick="key('l')">L</button>
+
+        <button type="button" id="enter" class="enter" onclick="key('enter')">Enter</button>
+        <button type="button" id="z" class="z" onclick="key('z')">Z</button>
+        <button type="button" id="x" class="x" onclick="key('x')">X</button>
+        <button type="button" id="c" class="c" onclick="key('c')">C</button>
+        <button type="button" id="v" class="v" onclick="key('v')">V</button>
+        <button type="button" id="b" class="b" onclick="key('b')">B</button>
+        <button type="button" id="n" class="n" onclick="key('n')">N</button>
+        <button type="button" id="m" class="m" onclick="key('m')">M</button>
+        <button type="button" id="back" class="back" onclick="key('back')">Back</button>
+    </div>
+
+    <div id="response" class="response"></div>
+</div>
+
+    <div id="h0" class="letter" hidden></div>
+    <div id="h1" class="letter" hidden></div>
+    <div id="h2" class="letter" hidden></div>
+    <div id="h3" class="letter" hidden></div>
+    <div id="h4" class="letter" hidden></div>
+
+<script>
+"use strict";
+var letterRow = 0;    // first row
+var letterCol = 0;    // first letter in row
+var wordSize  = 5;    // n letters in word
+
+const notIn = 0;
+const wrong = 1;
+const exact = 2;
+
+var letterStatus = 0; // not-in by default
+const exactPosition = [ "", "", "", "", "" ];
+
+var visibleKeyboard = false;
+
+function setFirstFocus( ) {
+//    console.log( "setFirstFocus called" );
+
+    reportWindowSize( );
+    window.addEventListener('resize', reportWindowSize);
+
+    selectLetter(0);
+
+    let deviceType
+    if ( navigator.userAgent.match(/iPad/i) ||
+        navigator.userAgent.match(/tablet/i) ) {
+        deviceType = "tablet";
+    } else if ( navigator.userAgent.match(/iPhone/i) ||
+        navigator.userAgent.match(/mobile/i) ) {
+        deviceType = "phone";
+    } else {
+        deviceType = "desktop";
+    }
+//    alert( "deviceType = " + deviceType );
+    if ( deviceType == "desktop" ) {
+        document.getElementById("keyboard").classList.remove("keyboard-area");
+        document.getElementById("keyboard").classList.add("hidden-area");
+        document.addEventListener('keydown', keyInput );
+    } else {
+        visibleKeyboard = true;
+        document.getElementById("enter").disabled = true;
+        document.getElementById("back").disabled = true;
+    }
+}
+
+function reportWindowSize( ) {
+    const root = document.documentElement;
+    const xNoScrollBar = root.clientWidth;
+    const yNoScrollBar = root.clientHeight;
+    const xScrollBar = window.innerWidth;
+    const yScrollBar = window.innerHeight;
+    console.log( "Width  < " + xNoScrollBar + " > " + xScrollBar );
+    console.log( "Height < " + yNoScrollBar + " > " + yScrollBar );
+}
+
+function getCurrentLetterObj( ) {
+    if ( letterCol < wordSize ) {
+        return document.getElementById( "" + letterCol );
+    }
+    return null;
+}
+
+function selectLetter( index ) {
+    let obj = getCurrentLetterObj();
+    if ( null != obj ) {
+//        console.log( "Unselecting letter index " + letterCol );
+        obj.classList.remove("selected");
+    }
+
+    letterCol = index;
+    if ( letterCol > 0 || letterRow > 0 ) {
+        document.getElementById("back").disabled = false;       
+    } else {
+        document.getElementById("back").disabled = true;
+    }
+
+    obj = getCurrentLetterObj();
+    if ( null != obj ) {
+//        console.log( "Selecting letter index " + letterCol );
+        obj.classList.add("selected");
+    } else if ( visibleKeyboard ) {
+        console.log("enabling enter button" );
+        let obj = document.getElementById("enter");
+        obj.disabled = false;
+//        obj.classList.add("active");
+    }
+}
+
+function setObjStatus( obj, status ) {
+//    console.log( "classes: " + obj.classList );
+    if ( obj.classList.contains( "not-in" ) ) {
+        obj.classList.remove( "not-in" );
+    } else if ( obj.classList.contains( "wrong" )  ) {
+        obj.classList.remove( "wrong" );
+    } else if ( obj.classList.contains( "exact"  ) ) {
+        obj.classList.remove( "exact" );
+    }
+    switch ( status ) {
+    case notIn:
+        obj.classList.add( "not-in" );
+        break;
+    case wrong:
+        obj.classList.add( "wrong" );
+        break;
+    case exact:
+        obj.classList.add( "exact" );
+        break;
+    }
+}
+
+function setLetterStatus( which ) {
+    console.log( "setting status for letter " + which );
+
+    let obj = document.getElementById( which );
+    setObjStatus( obj, letterStatus );
+//    console.log( "Letter " + which + " has classes: " + obj.classList );
+}
+
+function unsetPreviousLetterStatus( ) {
+    let obj;
+    switch ( letterStatus ) {
+    case notIn:
+        obj = document.getElementById("not-in");
+        obj.innerHTML = "not in word";
+        obj.classList.remove("not-in")
+        break;
+    case wrong:
+        obj = document.getElementById("wrong");
+        obj.innerHTML = "wrong position";
+        obj.classList.remove("wrong")
+        break;
+    case exact:
+        obj = document.getElementById("exact");
+        obj.innerHTML = "exact position";
+        obj.classList.remove("exact")
+        break;
+    }
+    letterStatus = 0;
+}
+
+function setStatus( status ) {
+    console.log( "setting current status to " + status );
+    unsetPreviousLetterStatus();
+    let obj;
+    switch( status ) {
+    case notIn:
+        obj = document.getElementById("not-in");
+        obj.classList.add("not-in")
+        break;
+    case wrong:
+        obj = document.getElementById("wrong");
+        obj.classList.add("wrong")
+        break;
+    case exact:
+        obj = document.getElementById("exact");
+        obj.classList.add("exact")
+        break;
+    default:
+        return;
+    }
+    obj.innerHTML = "select letter";
+    letterStatus = status;
+}
+
+function backspace( ) {
+    console.log("backspace: letter index = " + letterCol );
+// update both key attr and exact position based on remaining info
+    if ( letterCol > 0 ) {
+        selectLetter( letterCol - 1 );
+        let obj = getCurrentLetterObj();
+        obj.innerHTML = " ";
+        setObjStatus( obj, 0 );
+        updateKeyAttributes( true );
+    } else {
+        backup( );
+    }
+}
+
+function setLetter( k ) {
+    let obj = getCurrentLetterObj();
+    if ( null != obj ) {
+        obj.innerHTML = k;
+        if ( exactPosition[ letterCol ] == k ) {
+            setObjStatus( obj, exact );
+        }
+        selectLetter( letterCol + 1 );
+    }
+}
+
+function setKeyAttr( k, status ) {
+    if ( visibleKeyboard ) {
+        console.log( "setting key : " + k + " status to : " + status );
+        let obj = document.getElementById( k );
+        switch ( status ) {
+        case exact:
+            obj.classList.remove( "wrong", "not-in" );
+            obj.classList.add( "exact" );
+            break;
+        case wrong:
+            obj.classList.remove( "exact", "not-in" );
+            document.getElementById( k ).classList.add( "wrong" );
+            break;
+        case notIn:
+            obj.classList.remove( "exact", "wrong" );
+            obj.classList.add( "not-in" );
+            break;
+        }
+    }
+}
+
+function resetAllKeyAttrs( ) {
+    if ( visibleKeyboard ) {
+        for ( let i = 0; i < 26; i++ ) {
+            document.getElementById( String.fromCharCode( 0x61 + i ) ).
+                            classList.remove( "exact", "wrong", "not-in" );
+        }
+    }
+}
+
+function updateKetAttrFromLetter( k ) {
+    let obj = document.getElementById( k );
+
+    const code = obj.innerHTML;
+    //  console.log( "letter " + i + j + " class(es): " +
+    //         obj.classList + " value: " + obj.innerHTML );
+
+    let attr;
+    if ( obj.classList.contains("exact") ) {
+        attr = "k";
+        setKeyAttr( code, exact );
+    } else if ( obj.classList.contains("wrong") ) {
+        attr = "w";
+        setKeyAttr( code, wrong );
+    } else {
+        attr = "n";
+        setKeyAttr( code, notIn );
+    }
+    return attr + code;
+}
+
+function updateKeyAttributes( withCurrentRow ) {
+    for ( let i = 0; i < wordSize; i++ ) {
+        exactPosition[i] = "";  // reset exactPosition array before updating it
+    }
+    resetAllKeyAttrs( );
+    const words = [];
+    for ( let i = 0; i < letterRow; i++ ) {
+        for ( let j = 0; j < wordSize; j++ ) {
+            let word = updateKetAttrFromLetter( "" + i + j );
+            if ( word.charAt(0) == 'k' ) {
+                exactPosition[j] = word.charAt(1);
+            }
+            words[ i * wordSize + j ] = word;
+        }
+    }
+    if ( withCurrentRow ) {
+        for ( j = 0; j < letterCol; j++ ) {
+            updateKetAttrFromLetter( "" + j );
+        }
+    }
+    return words.join("");
+}
+
+function key( k ) {
+    console.log( "Key " + k + " pressed" );
+
+    switch ( k ) {
+    case "back":
+        backspace( );
+        break;
+    case "enter":
+        submit( );
+        break;
+    default:
+        setLetter( k );
+        break;
+    }
+}
+
+function keyInput( event ) {
+    if (event.defaultPrevented) {
+        return; // Do nothing if event already handled
+    }
+
+    let x = event.key;
+//    console.log( "key: " + x );
+    switch ( x ) {
+    case "Backspace":
+        backspace( );
+        break;
+    case "Enter":
+        submit( );
+        break;
+    default:
+        if ( x.length == 1 && ( ( x >= 'a' && x <= 'z' ) ||
+                                ( x >= 'A' && x <= 'Z' ) ) ) {
+            setLetter( x.toLowerCase() );
+        }
+        break;
+    }
+    event.preventDefault();
+}
+
+function submit( ) {
+    if ( wordSize == letterCol ) {
+        console.log( "Submit !" );
+
+        if ( visibleKeyboard ) {
+            let button = document.getElementById("enter");
+//            button.classList.remove("active");
+            button.disabled=true;
+        }
+        if ( isExactEntry() ) {
+            document.getElementById("response").innerHTML = "Done! congratulations";
+            return;
+        }
+
+        pushRow();
+        let data = updateKeyAttributes( false );
+        getSolution( data );
+    }
+}
+
+function moveLetter( dst, src ) {
+    const classes = [ "not-in", "wrong", "exact" ];
+    const clen = classes.length;
+
+    for ( let c = 0; c < clen; c++ ) {
+        if ( src.classList.contains( classes[c] ) ) {
+            dst.classList.add( classes[c] );
+            src.classList.remove( classes[c] );
+            src.classList.add( "not-in" );
+            break;
+        }
+    }
+    dst.innerHTML = src.innerHTML;
+    src.innerHTML = "";
+}
+
+function backup( ) {
+    console.log( "Backup!" );
+    if ( letterRow < 1 ) return;
+
+    letterRow --;
+    if ( letterRow == 0 && visibleKeyboard ) {
+        document.getElementById("back").disabled = true;
+    }
+    let inputArea = document.getElementById("input-area");
+    let firstChild = document.getElementById("0");
+    for ( let i = 0; i < wordSize; i++ ) {
+        let letterBox = document.getElementById( "" + i );
+        letterBox.classList.remove( "exact", "wrong", "not-in" );
+        let previous = document.getElementById( "" + letterRow + i );
+        moveLetter( letterBox, previous );
+        previous.remove();
+    }
+    document.getElementById("response").innerHTML = "";
+    selectLetter( wordSize );
+}
+
+function pushRow( ) {
+    let inputArea = document.getElementById("input-area");
+    let firstChild = document.getElementById("0");
+    for ( let i = 0; i < wordSize; i++ ) {
+        let letterBox = document.getElementById( "" + i );
+        let template = document.getElementById("h" + i);
+        let newLetterBox = template.cloneNode(true);
+        newLetterBox.id = "" + letterRow + i;
+        newLetterBox.hidden = false;
+        moveLetter( newLetterBox, letterBox );
+        inputArea.insertBefore( newLetterBox, firstChild );
+    }
+    unsetPreviousLetterStatus( );
+    letterRow ++;
+}
+
+async function getSolution( data ) {
+    let url = "/wordle/solver/solve?data="+data;
+    console.log( url );
+    let fetchedObj;
+    try {
+        fetchedObj = await fetch( url );
+    } catch ( e ) {
+        console.log( "getSolution: await fetch failed\n");
+        document.getElementById("response").innerHTML = "<p>Network or Server error</p>";
+        return;
+    }
+    let jsonText;
+    try {
+        jsonText = await fetchedObj.text();
+    } catch ( e ) {
+        console.log( "getSolution: wait text failed\n");
+        document.getElementById("response").innerHTML = "";
+        return;
+    }
+    const jsonObj = JSON.parse(jsonText);
+    let display = "";
+    if ( "error" in jsonObj ) {
+        display += "<p>Error: "+jsonObj.error+"</p>";
+    } else if ( jsonObj.list.length > 0 ) {
+        if ( jsonObj.suggest != "" ) {
+            display += "<p>Suggest: "+jsonObj.suggest+"</p>";
+        }
+        display += "<p>Possible: "
+        for (let i in jsonObj.list ) {
+            display += jsonObj.list[i] + " ";
+        }
+    } else {
+        display += "<p>No possible solution</p>";
+    }
+    document.getElementById("response").innerHTML = display;
+    selectLetter( 0 );
+}
+
+function isExactEntry( ) {
+    let count = 0;
+    for ( let i = 0; i < wordSize; i++ ) {
+        let letterBox = document.getElementById( "" + i );
+        if ( letterBox.classList.contains( "exact" ) ) {
+            count++;
+        }
+    }
+    if ( count == wordSize ) {
+        return true;
+    }
+    return false;
+}
+
+
+</script>
+</body>
+</html>

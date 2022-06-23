@@ -15,4 +15,4 @@ extern void print_letter_stats( );
 // word is always returned, even if multiple words have the same probability.
 // The returned string points into the given word list. It is up to the
 // caller to free the list after use.
-extern char *select_most_likely_word( word_node *list );
+extern const char *select_most_likely_word( word_node *list );
