@@ -523,6 +523,7 @@ function setKeyStatus( k, status ) {
         }
         break;
     case exact:
+        obj.classList.remove( "not-in", "wrong" );
         obj.classList.add( "exact" );
         break;
     }

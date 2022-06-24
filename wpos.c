@@ -75,7 +75,9 @@ extern int get_position_from_words( const char *ref, const char *word,
 
 /*
     update_solver_data transforms the received raw data into data that is more
-    suitable for the solver.
+    suitable for the solver. The raw data must use the same codes as used in
+    get_position_from_words ('r' for exact position, 'w' for wrong position,
+    or 'n' for not in word).
 
     It extracts 4 pieces of information from data:
     - the list of required letters at an exact position: e.g. sd->known="-l--e",
@@ -123,7 +125,7 @@ extern solver_data_status update_solver_data( solver_data *sd,
             return INVALID_LETTER_IN_DATA;
         }
         switch ( data[i] ) {
-        case 'k' :                              // required at exact position
+        case 'r' :                              // required at exact position
             if ( sd->known[pos] != data[li] ) {
                 // letter was not previously known at exact position
                 if ( '-' == sd->known[pos] ) {
@@ -155,20 +157,31 @@ extern solver_data_status update_solver_data( solver_data *sd,
                 printf( "wordle: letter at exact position is also not in word\n" );
                 return EXACT_POSITION_LETTER_NOT_IN_WORD;
             }
+            if ( NULL == strchr( sd->out, data[li] ) ) {
+                sd->out[n_out] = data[li];
+                ++ n_out;
+            }
             // note that a letter can be known at an exact location and then not
             // in word anymore, for example if the candidate contains repeating
             // letters while the reference contains only 1 instance of that letter
             // such as candidate 'couch' for reference 'chore'. In that case the
             // first 'c' is shown as exact position and the last 'c' as not in
-            // word (anymore). The same is true for a letter previously known to
-            // be at a wrong position and a new candidate show the same letter
-            // at a different location, still wrong, while a second instance of
-            // that letter at the previous wrong position is now indicated as not
-            // in word anymore. 
-            if ( NULL == strchr( sd->out, data[li] ) ) {
-                sd->out[n_out] = data[li];
-                ++ n_out;
-            }
+            // word (anymore). The same is true for a letter at a wrong position
+            // and not in the word anymore, in a similar example: with 'afoul
+            // reference, trying 'canal' gives the 'a' in second position as
+            // wrong and the 'a' in fourth position as not in word anymore. In
+            // this case, since 'a' is already required, being not in the word
+            // anymore must be remembered as a wrong position as well. Finally,
+            // yet another case arises with a letter previously known to be at
+            // a wrong position and a new candidate shows the same letter at a
+            // different location, still wrong, while a second instance of that
+            // letter at the previous wrong position is now indicated as not in
+            // word anymore.
+            if ( NULL != strchr( round_required, data[li] ) &&   // required at
+                (NULL == strchr( sd->wrong[pos], data[li] )) ) { // other pos
+                    sd->wrong[pos][index_at_pos[pos]] = data[li] ;
+                    ++index_at_pos[pos];    // but impossible at this position
+                }
             break;
         case 'w':                               // required but at wrong position
             if ( data[li] == sd->known[pos] ) {

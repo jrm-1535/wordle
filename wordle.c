@@ -18,17 +18,10 @@
 #define CORRECT    'r'
 #define UNKNOWN    ' '
 
-typedef struct {
-  char  attr, letter;
-} chattr;
-
-chattr all[ ALPHABET_SIZE ];
-static void init_all( void )
+static char key_attrs[ ALPHABET_SIZE ];
+static inline void init_key_attrs( void )
 {
-    for ( int i = 0; i < ALPHABET_SIZE; ++i ) {
-        all[i].attr = UNKNOWN;
-        all[i].letter = 'a' + i;
-    }
+    memset( key_attrs, UNKNOWN, sizeof(key_attrs) );
 }
 
 static bool check_match( const char *ref, char *try )
@@ -41,22 +34,22 @@ static bool check_match( const char *ref, char *try )
     }
 
     for ( int i = 0; i < WORD_SIZE; ++ i ) {
-        char key_attr = all[ try[i]-'a' ].attr;
+        char key_attr = key_attrs[ try[i]-'a' ];
         switch( position[i] ) {
         case NOT_IN:
             if ( key_attr != CORRECT &&  key_attr != IN_WRONG ) {
-                all[ try[i]-'a' ].attr = NOT_IN;
+                key_attrs[ try[i]-'a' ] = NOT_IN;
             }
             fputs( RED_BG, stdout );
             break;
         case IN_WRONG:
             if ( key_attr != CORRECT ) {
-                all[ try[i]-'a' ].attr = IN_WRONG;
+                key_attrs[ try[i]-'a' ] = IN_WRONG;
             }
             fputs( YELLOW_BG, stdout );
             break;
         case CORRECT:
-            all[ try[i]-'a' ].attr = CORRECT;
+            key_attrs[ try[i]-'a' ] = CORRECT;
             fputs( GREEN_BG, stdout );
             break;
         }
@@ -65,13 +58,13 @@ static bool check_match( const char *ref, char *try )
     fputs( DEFAULT, stdout );
 
     for ( int i = 0; i < ALPHABET_SIZE; ++ i ) {
-        switch( all[i].attr ) {
+        switch( key_attrs[i] ) {
         case NOT_IN: fputs( RED_BG, stdout ); break;
         case IN_WRONG: fputs( YELLOW_BG, stdout ); break;
         case CORRECT: fputs( GREEN_BG, stdout ); break;
         case UNKNOWN: fputs( BLUE_BG, stdout ); break;
         }
-        putchar( all[i].letter );
+        putchar( 'a' + i );
     }
     fputs( NORMAL, stdout );
     if ( 0 == strncmp( ref, try, WORD_SIZE ) ) {
@@ -90,15 +83,15 @@ static void play( void )
     int word_number = rand() % n_words;
     const char *word = get_nth_word_in_dictionary( word_number );
     printf( "Playing wordle - number %d:\n", word_number );
-#else
+#else // for debugging specific word
     printf( "Playing wordle:\n" );
-    const char *word = "patsy";
+    const char *word = "afoul";
     if ( ! is_word_in_dictionary( word ) ) {
         printf("Word %s is not in dictionary\n", word );
         exit(0);
     }
 #endif
-    init_all();
+    init_key_attrs();
     int stdin_fd = fileno( stdin );
     char buffer[WORD_SIZE+1];
     do {
@@ -108,60 +101,54 @@ static void play( void )
     } while ( ! check_match( word, buffer ) );
 }
 
-enum operations {
- STATS, PLAY, SOLVE
-};
-
-void help( void )
+static void help( void )
 {
-    printf( "wordle -h -f -k=<set> -n=<letters> -w=<sets>\n" );
-    printf( "    wordle prints a list of possible words, given the constraints\n" );
-    printf( "    expressed by options -k, -n and -w.\n\n" );
+    printf( "wordle -h -f -d=<sets>\n" );
+    printf( "    Wordle prints a list of letter statistics in words or a list of\n" );
+    printf( "    possible words, given the constraints expressed by option -d,\n" );
+    printf( "    or starts a random wordle game if no argument is given.\n\n" );
     printf( "Options:\n" );
     printf( "    -h  print this help message and exits.\n" );
     printf( "    -f  print frequencies of letter appearance at all positions\n" );
     printf( "        and exits\n" );
-    printf( "    -k  letters known to be at their location. This option must\n" );
-    printf( "        be given as exactly 5 characters, with a dash replacing\n" );
-    printf( "        unknown letters.\n" );
-    printf( "    -n  list of letters known not to be in the solution.\n" );
-    printf( "    -w  letters known to be in the solution, but at a wrong\n" );
-    printf( "        location. This option must be given as a series of sets\n" );
-    printf( "        of exactly 5 characters, each set separated by commas\n" );
-    printf( "        and consisting of one or more occurences of the same\n" );
-    printf( "        letter at wrong location(s) and as many occurences of\n" );
-    printf( "        a dash replacing unknown location(s) as needed.\n\n" );
-    printf( "    -d  alternatively, option -d replaces a combination of -k, -n\n" );
-    printf( "        and -w with a string made of a series of 5 sets, each set\n" );
-    printf( "        having 2 letters. The first one is a code indicating whether\n" );
-    printf( "        the following letter is at an exact position (e), a wrong\n" );
-    printf( "        position (w) or not in the word (n), and the second one\n" );
-    printf( "        is the letter in question. Option d and options -k, -w or\n" );
-    printf( "        -n are exclusive.\n\n");
-    printf( "Example:\n" );
-    printf( "    wordle -w=a----,---i- -n=lgrhoy -k=s---t\n\n" );
-    printf( "    This might be \"saint\"\n\n" );
+    printf( "    -d  print the list of words that match the given constraints\n" );
+    printf( "        and exits. The constraints are expressed as a string made\n" );
+    printf( "        of a series of sets, each set describing the results of an\n" );
+    printf( "        attempt to guess a word of 5 letters. The maximum number\n" );
+    printf( "        of attempts is 6 (as in wordle). The status of each letter\n" );
+    printf( "        in the word is given as a couple or characters: the first\n" );
+    printf( "        one is a code indicating whether the following letter is at\n" );
+    printf( "        the right position (r), a wrong position (w) or not in the\n" );
+    printf( "        word(n), and the second one is the letter in question.\n\n" );
+    printf( "Options -d and -f are exclusive.\n\n");
+    printf( "Examples:\n" );
+    printf( "    wordle -d=rsnlwawtne\n" );
+    printf( "        means that a first attempt was made with 'slate' and the\n" );
+    printf( "        result is: s is at the right position, l and e and not in\n" );
+    printf( "        the word to guess and both a and t are in the word but at\n" );
+    printf( "        a wrong position.\n" );
+    printf( "    wordle -d=rsnlwawtnersntwanrrt\n" );
+    printf( "        this is the same first attemp as above followed by a second\n" );
+    printf( "        one with 'start': s is still at the right position, 't' and\n" );
+    printf( "        'r' are not (anymore) in the word, 'a' is still at a wrong\n" );
+    printf( "        position and 't' is now at the right position in the word.\n" );
+    printf( "        notice that 't' is both at the right position as the last\n" );
+    printf( "        letter in the word and not in the word anymore as second\n" );
+    printf( "        letter - an indication that the word contains only one 't'.\n");
+    printf( "    This might be \"saint\", for example\n\n" );
     printf( "Note:\n" );
-    printf( "    By default, without option -n the list of letters known not\n" );
-    printf( "    to be in is assumed to be an empty list, without option -w\n" );
-    printf( "    the list of letters known to be in at a wrong location is\n" );
-    printf( "    assumed to be an empty list and without -k, no letter known\n" );
-    printf( "    to be at their location is assumed.\n\n");
     printf( "    Without options, wordle selects a random word and starts an\n" );
     printf( "    interactive game asking you to guess the word.\n" );
 }
 
 typedef struct {
-    char *out, *wrong, *known, *data;
+    char *data;
     bool frequencies;
 } args_t;
 
-void get_args( int argc, char **argv, args_t *args )
+static void get_args( int argc, char **argv, args_t *args )
 {
     assert( NULL != args );
-    args->out = NULL;
-    args->wrong = NULL;
-    args->known = NULL;
     args->data = NULL;
     args->frequencies = false;
 
@@ -182,11 +169,6 @@ void get_args( int argc, char **argv, args_t *args )
                         printf("Wordle: error multiple options -d\n");
                         exit(1);
                     }
-                    if ( NULL != args->out || NULL != args->wrong ||
-                         NULL != args->known ) {
-                        printf("Wordle: error option -d and options -k -w -k are exclusive\n");
-                        exit(1);
-                    }
                     args->data = s;
                 } else {
                     printf("wordle: option -d must be followed by '='\n");
@@ -194,42 +176,6 @@ void get_args( int argc, char **argv, args_t *args )
                 }
                 break;
 
-            case 'n': case 'N':
-                if (*s++ == '=') {
-                    if ( NULL != args->out ) {
-                        printf("Wordle: error multiple options -n\n");
-                        exit(1);
-                    }
-                    args->out = s;
-                } else {
-                    printf("wordle: option -n must be followed by '='\n");
-                    exit(1);
-                }
-                break;
-            case 'w': case 'W':
-                if (*s++ == '=') {
-                    if ( NULL != args->wrong ) {
-                        printf("Wordle: error multiple options -w\n");
-                        exit(1);
-                    }
-                    args->wrong = s;
-                } else {
-                    printf("wordle: option -w must be followed by '='\n");
-                    exit(1);
-                }
-                break;
-            case 'k': case 'K':
-                if (*s++ == '=') {
-                    if ( NULL != args->known ) {
-                        printf("Wordle: error multiple options -k\n");
-                        exit(1);
-                    }
-                    args->known = s;
-                } else {
-                    printf("wordle: option -k must be followed by '='\n");
-                    exit(1);
-                }
-                break;
             default:
                 printf("wordle: error option -%c not recognized\n", *(s-1));
                 help();
@@ -244,131 +190,24 @@ void get_args( int argc, char **argv, args_t *args )
     }
 }
 
-void set_solver_data_from_args( solver_data *given, args_t *args )
-{
-    if ( args->out ) {
-        int n = strlen( args->out );
-        if ( n >= MAX_TRIES * WORD_SIZE ) {
-            printf("wordle: too many letters known to be out (%d)\n", n );
-            exit(1);
-        }
-        for ( int i = 0; i < n; ++i ) {
-            if ( args->out[i] < 'a' || args->out[i] > 'z' ) {
-                printf( "wordle: error invalid entry (%c) in letters known to be out\n",
-                            args->out[i] );
-                exit(1);
-            }
-        }
-        given->out = malloc( n + 1 );
-        strcpy( given->out, args->out );
-//        given->out = args->out;
-    } else {
-        given->out = malloc( 1 );
-        given->out[0] = '\0';
-    }
+enum operations {
+ STATS, PLAY, SOLVE
+};
 
-    if ( args->known ) {
-        int n = strlen( args->known );
-        if ( n != 5 ) {
-            printf("wordle: 5 letters or '-' specify the known letters et location\n");
-            exit(1);
-        }
-
-        for ( int i = 0; i < WORD_SIZE; ++i ) {
-            if ( args->known[i] != '-' ) {
-                if ( args->known[i] < 'a' || args->known[i] > 'z' ) {
-                    printf( "wordle: error invalid letter (%c) in known set\n",
-                            args->known[i] );
-                    exit(1);
-                }
-                if ( NULL != strchr( given->out, args->known[i] ) ) {
-                    printf( "wordle: known letter %c is also not in solution\n",
-                            args->known[i] );
-                    exit(1);
-                }
-            }
-        }
-        memcpy( given->known, args->known, WORD_SIZE + 1 );
-    }
-
-    if ( args->wrong ) {
-
-        char *set = args->wrong;
-        int index = 0;                          // in required
-        int index_at_pos[WORD_SIZE] = { 0 };    // in wrong[pos]
-
-        while ( *set != 0 ) {
-            if ( ',' == *set ) { ++set; }
-
-            char *p = set;  // first pass to check letters in each set
-            char c = ' ';   // single letter in a set
-
-            for ( int i = 0; i < WORD_SIZE; ++i ) {
-                if ( *p == 0 ) {
-                    printf( "wordle: error inconsistent set for -w (%s)\n",
-                            set );
-                    exit(1);
-                }
-                if ( *p != '-' ) {
-                    if ( *p < 'a' || *p > 'z' ) {
-                        printf( "wordle: error invalid letter (%c) in wrong sets\n",
-                                *p );
-                        exit(1);
-                    }
-                    if ( NULL != strchr( given->out, *p ) ) {
-                        printf( "wordle: wrong letter %c is also not in solution\n",
-                                *p );
-                        exit(1);
-                    }
-                    if ( ' ' == c ) {
-                        c = *p;
-                    } else if ( c != *p ) {
-                        printf( "wordle: error inconsistent set for -w (%s)\n",
-                                set );
-                        exit(1);
-                    }
-                }
-                ++p;
-            }
-
-            if ( ' ' != c ) {  // second pass to get constraints
-                p = set;
-                if ( NULL == strchr( given->known, c ) ) {
-                    given->required[index] = c;     // already known, so not required
-                    given->required[++index] = 0;   // anymore, but still wrong @pos
-                }
-                for ( int i = 0; i < WORD_SIZE; ++i ) {
-                    if ( '-' != *p ) {
-                        given->wrong[i][index_at_pos[i]] = c;
-                        ++index_at_pos[i];
-                    }
-                    ++p;
-                }
-            }
-            set = p;
-        }
-    }
-}
-
-enum operations process_args( args_t *args, solver_data *given )
+static enum operations process_args( args_t *args, solver_data *given )
 {
     if ( args->frequencies ) {
         return STATS;
     }
 
-    if ( NULL == args->out && NULL == args->known && NULL == args->wrong &&
-         NULL == args->data ) {
+    if ( NULL == args->data ) {
         return PLAY;
     }
 
     init_solver_data( given );
-    if ( args->data ) {
-        if ( SOLVER_DATA_SET != set_solver_data( given, args->data ) )
-            exit(1);
-    } else {
-        set_solver_data_from_args( given, args );
+    if ( SOLVER_DATA_SET != set_solver_data( given, args->data ) ) {
+        exit(1);
     }
-
     return SOLVE;
 }
 
@@ -388,7 +227,7 @@ int main ( int argc, char **argv )
         print_letter_stats( );
         break;
     case SOLVE:
-        print_solver_data( &given );
+//        print_solver_data( &given );
         result = get_solutions( &given );
         if ( NULL == result ) {
             printf( "No solution\n" );
@@ -407,6 +246,7 @@ int main ( int argc, char **argv )
         break;
      case PLAY:
         play( );
+        break;
     }
     discard_dictionary( );
     return 0;
