@@ -30,7 +30,14 @@
 
 #define JSON_DATA           "application/json"
 
-static int on_client_connect( void *cls, const struct sockaddr *addr, socklen_t addrlen )
+#if MHD_VERSION < 0x00097002
+#define eMHD_Result  int
+#else
+#define eMHD_Result  enum MHD_Result
+#endif
+
+static eMHD_Result on_client_connect( void *cls, const struct sockaddr *addr,
+                                      socklen_t addrlen )
 {
     (void)cls;
     (void)addrlen;
@@ -53,8 +60,8 @@ static int on_client_connect( void *cls, const struct sockaddr *addr, socklen_t 
     return MHD_YES;
 }
 
-static int check_headers( void *cls, enum MHD_ValueKind kind,
-                   const char *key, const char *value )
+static eMHD_Result check_headers( void *cls, enum MHD_ValueKind kind,
+                                 const char *key, const char *value )
 {
     (void)cls;
     (void)kind;
@@ -78,8 +85,8 @@ typedef struct {
     char    word[WORD_SIZE+1];
 } play_parameters;
 
-static int get_player_query( void *cls, enum MHD_ValueKind kind,
-                             const char *key, const char *value )
+static eMHD_Result get_player_query( void *cls, enum MHD_ValueKind kind,
+                                     const char *key, const char *value )
 {
     (void)kind;
     play_parameters *params = cls;
@@ -96,8 +103,8 @@ static int get_player_query( void *cls, enum MHD_ValueKind kind,
     return MHD_YES;
 }
 
-static int get_solver_query( void *cls, enum MHD_ValueKind kind,
-                             const char *key, const char *value )
+static eMHD_Result get_solver_query( void *cls, enum MHD_ValueKind kind,
+                                    const char *key, const char *value )
 {
     (void)kind;
     char **data_ptr = cls;
@@ -312,10 +319,13 @@ static void free_static_pages( wordle_server *ws )
     }
 }
 
-static int answer_to_connection( void *cls, struct MHD_Connection *connection,
-                                 const char *url, const char *method,
-                                 const char *version, const char *upload_data,
-                                 size_t *upload_data_size, void **con_cls )
+static eMHD_Result answer_to_connection( void *cls,
+                                         struct MHD_Connection *connection,
+                                         const char *url, const char *method,
+                                         const char *version,
+                                         const char *upload_data,
+                                         size_t *upload_data_size,
+                                         void **con_cls )
 {
 //    printf( "URL: %s METHOD %s version %s\n", url, method, version );
     (void)version;           /* Unused. Silent compiler warning. */
