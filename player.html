@@ -10,8 +10,7 @@ body {
 /*    overflow-y: hidden; */
 }
 
-.horizontal-center-work-area
-{
+.horizontal-center-work-area {
     height: auto;
 /*    width: 96vw; */
     margin: auto;
@@ -19,20 +18,18 @@ body {
     max-width: 400px;
 }
 
-.input-area
-{
+.input-area {
     display: grid;
     grid-template-columns: 20% 20% 20% 20% 20%;
 /*    column-gap: 2vw; */
-    background-color: lightgrey;
+    background-color: #F5F5F5;
 /*    overflow-x: hidden;*/
     height: auto;
 /*    min-height: 200px; */
     width: auto;
 }
 
-.keyboard-area
-{
+.keyboard-area {
     display: grid;
     grid-template-columns: repeat(20, 1fr);
     height: 7em;
@@ -43,8 +40,7 @@ body {
     font-size: 1.5rem;
 }
 
-.letter
-{
+.letter {
     margin-left: 5%;
     border: 1px solid black;
     border-radius: 5px;
@@ -54,22 +50,46 @@ body {
     text-align: center;
     font-size: 3rem;
 }
-.selected
-{
+.selected {
     border: 2px solid orange;
 }
-.unselected
-{
+.unselected {
     border: 2px solid black;
 }
+.mark-not-in {
+    animation-name: out;
+    animation-duration: 0.6s;
+    animation-fill-mode: forwards;
+}
+.mark-wrong {
+    animation-name: wrong;
+    animation-duration: 0.6s;
+    animation-fill-mode: forwards;
+}
+.mark-exact {
+    animation-name: exact;
+    animation-duration: 0.6s;
+    animation-fill-mode: forwards;
+}
 
+@keyframes out {
+  to {background-color: gray;}
+}
 .not-in
 {
     background-color: gray;
 }
+
+@keyframes wrong {
+  to {background-color: yellow;}
+}
 .wrong
 {
     background-color: yellow;
+}
+
+@keyframes exact {
+  to {background-color: green;}
 }
 .exact
 {
@@ -317,41 +337,41 @@ body {
 
 <div class="horizontal-center-work-area">
     <div class="input-area" id="input-area">
-        <div id="00" class="letter not-in"></div>
-        <div id="01" class="letter not-in"></div>
-        <div id="02" class="letter not-in"></div>
-        <div id="03" class="letter not-in"></div>
-        <div id="04" class="letter not-in"></div>
+        <div id="00" class="letter"></div>
+        <div id="01" class="letter"></div>
+        <div id="02" class="letter"></div>
+        <div id="03" class="letter"></div>
+        <div id="04" class="letter"></div>
 
-        <div id="10" class="letter not-in"></div>
-        <div id="11" class="letter not-in"></div>
-        <div id="12" class="letter not-in"></div>
-        <div id="13" class="letter not-in"></div>
-        <div id="14" class="letter not-in"></div>
+        <div id="10" class="letter"></div>
+        <div id="11" class="letter"></div>
+        <div id="12" class="letter"></div>
+        <div id="13" class="letter"></div>
+        <div id="14" class="letter"></div>
 
-        <div id="20" class="letter not-in"></div>
-        <div id="21" class="letter not-in"></div>
-        <div id="22" class="letter not-in"></div>
-        <div id="23" class="letter not-in"></div>
-        <div id="24" class="letter not-in"></div>
+        <div id="20" class="letter"></div>
+        <div id="21" class="letter"></div>
+        <div id="22" class="letter"></div>
+        <div id="23" class="letter"></div>
+        <div id="24" class="letter"></div>
 
-        <div id="30" class="letter not-in"></div>
-        <div id="31" class="letter not-in"></div>
-        <div id="32" class="letter not-in"></div>
-        <div id="33" class="letter not-in"></div>
-        <div id="34" class="letter not-in"></div>
+        <div id="30" class="letter"></div>
+        <div id="31" class="letter"></div>
+        <div id="32" class="letter"></div>
+        <div id="33" class="letter"></div>
+        <div id="34" class="letter"></div>
 
-        <div id="40" class="letter not-in"></div>
-        <div id="41" class="letter not-in"></div>
-        <div id="42" class="letter not-in"></div>
-        <div id="43" class="letter not-in"></div>
-        <div id="44" class="letter not-in"></div>
+        <div id="40" class="letter"></div>
+        <div id="41" class="letter"></div>
+        <div id="42" class="letter"></div>
+        <div id="43" class="letter"></div>
+        <div id="44" class="letter"></div>
 
-        <div id="50" class="letter not-in"></div>
-        <div id="51" class="letter not-in"></div>
-        <div id="52" class="letter not-in"></div>
-        <div id="53" class="letter not-in"></div>
-        <div id="54" class="letter not-in"></div>
+        <div id="50" class="letter"></div>
+        <div id="51" class="letter"></div>
+        <div id="52" class="letter"></div>
+        <div id="53" class="letter"></div>
+        <div id="54" class="letter"></div>
 
     </div>
 <!--
@@ -402,6 +422,8 @@ const notIn = 0;
 const wrong = 1;
 const exact = 2;
 
+var animationEnd = "animationend";   // or "webkitAnimationEnd"
+
 function setFirstFocus( ) {
 //    console.log( "setFirstFocus called" );
 
@@ -409,6 +431,11 @@ function setFirstFocus( ) {
 //    window.addEventListener('resize', reportWindowSize);
 
     selectLetter(0);
+
+    if ( ! navigator.userAgent.match(/Firefox/i) &&
+         ! navigator.userAgent.match(/Edge/i) ) {
+        anuimationEnd = "webkitAnimationEnd";
+    }
 
     let deviceType
     if ( navigator.userAgent.match(/iPad/i) ||
@@ -479,27 +506,28 @@ function setLetter( k ) {
     }
 }
 
-function setLetterStatus( which, status ) {
+async function setLetterStatus( which, status ) {
     console.log( "setting status " + status + " for letter " + which );
 
     let obj = document.getElementById( which );
 //    console.log( "classes: " + obj.classList );
-    if ( obj.classList.contains( "not-in" ) ) {
-        obj.classList.remove( "not-in" );
-    } else if ( obj.classList.contains( "wrong" )  ) {
-        obj.classList.remove( "wrong" );
-    } else if ( obj.classList.contains( "exact"  ) ) {
-        obj.classList.remove( "exact" );
-    }
+//    if ( obj.classList.contains( "not-in" ) ) {
+//        obj.classList.remove( "not-in" );
+//    } else if ( obj.classList.contains( "wrong" )  ) {
+//        obj.classList.remove( "wrong" );
+//    } else if ( obj.classList.contains( "exact"  ) ) {
+//        obj.classList.remove( "exact" );
+//    }
+    obj.classList.remove( "not-in" );
     switch ( status ) {
     case notIn:
-        obj.classList.add( "not-in" );
+        obj.classList.add( "mark-not-in" );
         break;
     case wrong:
-        obj.classList.add( "wrong" );
+        obj.classList.add( "mark-wrong" );
         break;
     case exact:
-        obj.classList.add( "exact" );
+        obj.classList.add( "mark-exact" );
         break;
     }
 //    console.log( "Letter " + which + " has classes: " + obj.classList );
@@ -581,6 +609,49 @@ function keyInput( event ) {
     event.preventDefault();
 }
 
+function next_move( word, position ) {
+
+    let rightCount = 0;
+    for ( let i = 0; i < wordSize; i++ ) {
+        let status;
+        if ( position.charAt( i ) == "w" ) {
+            status = wrong;
+        } else if ( position.charAt( i ) == "r" ) {
+            status = exact;
+            rightCount++;
+        } else {
+            status = notIn;
+        }
+        setKeyStatus( word.charAt( i ), status );
+    }
+
+    if ( rightCount == wordSize ) {
+        let congrats
+        switch( letterRow ) {
+        case 0:
+            congrats = "Unbelievable!";
+            break;
+        case 1:
+            congrats = "Terrific!";
+            break;
+        case 2:
+            congrats = "Splendid!";
+            break;
+        case 3:
+            congrats = "Impressive...";
+            break;
+        case 4:
+            congrats = "Pfft!";
+            break;
+        }
+        alert( congrats );
+        ended = true;
+    } else {
+        letterRow++;
+        selectLetter( 0 );
+    }
+}
+
 async function submit( ) {
     if ( wordSize == letterCol ) {
         console.log( "Submit !" );
@@ -603,9 +674,13 @@ async function submit( ) {
 
         if ( null != jsonObj ) {
             if ( "error" in jsonObj ) {
-                alert( jsonObj.error + " (" + jsonObj.word +")" );
-                if ( jsonObj.error.includes("failed") ) {
-                    ended = true;
+                if ( jsonObj.error == "not in dictionary" ) {
+                    alert( jsonObj.word + " is not in dictionary, Try again!" );
+                } else {
+                    alert( jsonObj.error + ". The word was " + jsonObj.word );
+                    if ( jsonObj.error.includes("failed") ) {
+                        ended = true;
+                    }
                 }
                 return;
             }
@@ -614,30 +689,29 @@ async function submit( ) {
             let position = jsonObj.position;
 
             console.log( "game: " + gameNumber + " word: " + word + " position: " + position );
-            let found = false;
             if ( word == guess ) {
-                let rightCount = 0;
-                for ( let i = 0; i < wordSize; i++ ) {
-                    if ( position.charAt( i ) == "w" ) {
-                        setLetterStatus( "" + letterRow + i, wrong );
-                        setKeyStatus( word.charAt( i ), wrong );
-                    } else if ( position.charAt( i ) == "r" ) {
-                        setLetterStatus( "" + letterRow + i, exact );
-                        setKeyStatus( word.charAt( i ), exact );
-                        rightCount++;
-                    } else {
-                        setKeyStatus( word.charAt( i ), notIn );
+                let animateCol = 0;
+                let animate = function ( ) {
+                    console.log( "animateCol = ", + animateCol );
+                    if ( animateCol == wordSize ) {
+                        next_move( word, position );
+                        return;
                     }
+                    const obj = document.getElementById(  "" + letterRow + animateCol );
+                    obj.addEventListener( animationEnd, animate );
+
+                    let status
+                    if ( position.charAt( animateCol ) == "w" ) {
+                        status = wrong;
+                    } else if ( position.charAt( animateCol ) == "r" ) {
+                        status = exact;
+                    } else {
+                        status = notIn;
+                    }
+                    setLetterStatus( "" + letterRow + animateCol, status, animate );
+                    animateCol ++;
                 }
-                if ( rightCount == wordSize )
-                    found = true;
-            }
-            if ( found ) {
-                alert( "Splendid!" );
-                ended = true;
-            } else {
-                letterRow++;
-                selectLetter( 0 );
+                animate();
             }
         }
     }
