@@ -37,11 +37,11 @@
 extern int get_position_from_words( const char *ref, const char *word,
                                      char *pos )
 {
-    assert( WORD_SIZE == strlen(ref) );
+    assert( WORD_SIZE == strnlen( ref, WORD_SIZE+ 1 ) );
     char ref_tmp[WORD_SIZE+1];
     strcpy( ref_tmp, ref );
 
-    assert( WORD_SIZE == strlen(word) );
+    assert( WORD_SIZE == strnlen( word, WORD_SIZE+1 ) );
     if ( ! is_word_in_dictionary( word ) ) {
         return -1;
     }        

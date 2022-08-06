@@ -349,7 +349,7 @@ extern void print_letter_stats( void )
     for ( int i = 0; i < ALPHABET_SIZE; ++i ) {
         total += lr.global_n[i];
     }
-    double check = 0;
+//    double check = 0;
     while ( true ) {
         int highest_n = 0;
         int highest_l = 0;
@@ -364,7 +364,7 @@ extern void print_letter_stats( void )
         }
         printf( "  %c: %.2f%%\n", 'a'+ highest_l,
                              (double)(highest_n*100) / (double)total );
-        check += (double)highest_n / (double)total;
+//        check += (double)highest_n / (double)total;
         lr.global_n[highest_l] = 0;
     }
 //    printf( "\nChecking frequency sums: %f\n", check );

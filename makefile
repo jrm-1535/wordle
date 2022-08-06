@@ -2,7 +2,7 @@
 # Makefile for wordle
 #
 
-DEBUG    := -g -DDEBUG
+#DEBUG    := -g -DDEBUG
 DEFINES  := -D_POSIX_SOURCE -D_POSIX_C_SOURCE=200809L
 WARNINGS := -Wall -Wextra -pedantic
 SERVER_LIB := -lmicrohttpd

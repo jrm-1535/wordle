@@ -5,6 +5,8 @@
 #include <assert.h>
 #include <time.h>
 
+#include <unistd.h>
+
 #include <sys/types.h>
 #include <arpa/inet.h>
 #include <sys/select.h>
@@ -50,12 +52,12 @@ static eMHD_Result on_client_connect( void *cls, const struct sockaddr *addr,
 
         char ip4[INET_ADDRSTRLEN];  // space to hold the IPv4 string
         inet_ntop(AF_INET, &(addr->sa_data[2]), ip4, INET_ADDRSTRLEN);
-        printf( "IPv4 Address: %s:%u\n", ip4, (*p<< 8) + *(p+1) );
+        printf( "IPv4 Address: %s:%u\n", ip4, (uint16_t)(*p<<8) + (uint16_t)(*(p+1)) );
     } else if ( addr->sa_family == AF_INET6 ) {
         const unsigned char *p = (unsigned char *)&addr->sa_data[0];
         char ip6[INET6_ADDRSTRLEN]; // space to hold the IPv6 string
         inet_ntop(AF_INET6, &(addr->sa_data[2]), ip6, INET6_ADDRSTRLEN);
-        printf( "IPv6 Address: %s:%u\n", ip6, (*p<< 8) + *(p+1) );
+        printf( "IPv6 Address: %s:%u\n", ip6, (uint16_t)(*p<<8) + (uint16_t)(*(p+1)) );
     }
     return MHD_YES;
 }
@@ -97,8 +99,11 @@ static eMHD_Result get_player_query( void *cls, enum MHD_ValueKind kind,
     } else if ( 0 == strcmp( key, "attempt" ) ) {
         params->attempt = get_int_value( value );
     } else if ( 0 == strcmp( key, "word" ) ) {
-        strncpy( params->word, value, WORD_SIZE+1 );
-        params->word[WORD_SIZE] = 0;
+        int l = strnlen( value, WORD_SIZE+1 );
+        if ( l == WORD_SIZE ) {
+            memcpy( params->word, value, WORD_SIZE );
+            params->word[WORD_SIZE] = 0;
+        }
     }
     return MHD_YES;
 }
@@ -111,8 +116,11 @@ static eMHD_Result get_solver_query( void *cls, enum MHD_ValueKind kind,
     printf( "solver query: %s=%s\n", key, value );
     if ( 0 == strcmp( key, "data" ) ) {
         int size = strlen( value ) + 1;
-        *data_ptr = malloc( size );
-        strcpy( *data_ptr, value );
+        char *buffer = malloc( size );
+        if ( NULL != buffer ) {
+            strcpy( buffer, value );
+            *data_ptr = buffer;
+        }
     }   
     return MHD_YES;
 }
@@ -464,7 +472,7 @@ extern int main( int argc, char **argv )
     srand( seed );
 
     load_dictionary( WORDLE_DICTIONARY );
-
+    printf( "Starting wordle server\n" );
     struct MHD_Daemon *daemon;
     daemon = MHD_start_daemon( MHD_USE_AUTO | MHD_USE_INTERNAL_POLLING_THREAD, PORT,
                                &on_client_connect, NULL,
@@ -474,11 +482,14 @@ extern int main( int argc, char **argv )
         return 1;
     }
 
+#if DEBUG
     (void) getchar ();
-
+#else
+    pause( );
+#endif
     MHD_stop_daemon (daemon);
     discard_dictionary( );
     free_static_pages(  &wsv );
-
+    printf( "Exiting wordle server\n" );
     return 0;
 }
